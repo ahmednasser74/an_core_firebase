@@ -1,7 +1,9 @@
 library an_core_firebase;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export './src/index.dart';
+
+export 'package:flutter_local_notifications/flutter_local_notifications.dart';
+export 'package:firebase_analytics/firebase_analytics.dart';
+export 'package:firebase_core/firebase_core.dart';
+export 'package:firebase_crashlytics/firebase_crashlytics.dart';
+export 'package:firebase_messaging/firebase_messaging.dart';
