@@ -7,5 +7,5 @@ class FirebaseAnalyticsHelper {
 
   static FirebaseAnalyticsObserver get getFirebaseAnalyticsObserver => FirebaseAnalyticsObserver(analytics: _analyticsInstance);
 
-  void logEvent(String name, {Map<String, dynamic>? parameters}) => _analyticsInstance.logEvent(name: name, parameters: parameters);
+  void logEvent(String name, {Map<String, Object>? parameters}) => _analyticsInstance.logEvent(name: name, parameters: parameters);
 }

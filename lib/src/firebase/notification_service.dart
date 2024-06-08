@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -19,9 +21,10 @@ class AppNotificationService {
 
   static AppNotificationService get instance => _instance;
   late FirebaseMessaging messaging;
+  final StreamController<NotificationResponse> _onTapNotificationResponseStreamController = StreamController<NotificationResponse>.broadcast();
+  static final StreamController<NotificationResponse> _onReceiveBgLocalNotificationStreamController = StreamController<NotificationResponse>.broadcast();
 
   Future<void> init() async {
-    print('object');
     messaging = FirebaseMessaging.instance;
     await messaging.requestPermission();
     _initAndFireLocalNotification();
@@ -39,17 +42,23 @@ class AppNotificationService {
   }) {
     _setupOnMessageOpenedApp(onBackgroundMessagesCallback: onBackgroundMessagesCallback);
     _listenOnBackgroundMessage(onBackgroundMessagesCallback);
-    _initAndFireLocalNotification(
-      onTapLocalNotification: onTapLocalNotification,
-      androidAppIcon: androidAppIcon,
-    );
+    //* bst2bl el values ely etdaft fe el stram w brg3ha fe el callback bta3 el listener
+    _onTapNotificationResponseStreamController.stream.listen((details) => onTapLocalNotification(details));
+    if (onReceiveBgLocalNotification != null) {
+      _onReceiveBgLocalNotificationStreamController.stream.listen(
+        (details) => onReceiveBgLocalNotification(details),
+      );
+    }
   }
 
-  void _initAndFireLocalNotification({
-    Function(NotificationResponse details)? onTapLocalNotification,
-    void Function(NotificationResponse)? onReceiveBgLocalNotification,
-    String? androidAppIcon,
-  }) async {
+  //* throw exception while using in onDidReceiveBackgroundNotificationResponse of FlutterLocalNotificationsPlugin().initialize
+  // static DidReceiveBackgroundNotificationResponseCallback get onReceiveBgLocalNotification {
+  //   return (details) {
+  //     _onReceiveBgLocalNotificationStreamController.add(details);
+  //   };
+  // }
+
+  void _initAndFireLocalNotification() async {
     await FlutterLocalNotificationsPlugin().initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -57,7 +66,10 @@ class AppNotificationService {
       ),
 
       /// [onDidReceiveBackgroundNotificationResponse] callback is invoked on a background isolate. Functions passed to the
-      onDidReceiveBackgroundNotificationResponse: onReceiveBgLocalNotification,
+      onDidReceiveBackgroundNotificationResponse: (NotificationResponse response) {
+        _log('onDidReceiveBackgroundNotificationResponse:', '$response');
+        _onReceiveBgLocalNotificationStreamController.add(response);
+      },
 
       /// The [onDidReceiveNotificationResponse] callback is fired when the user
       /// selects a notification or notification action that should show the
@@ -65,7 +77,7 @@ class AppNotificationService {
       ///lama bados 3ala el notification mn bara w app in bg mesh terminate
       onDidReceiveNotificationResponse: (NotificationResponse details) {
         _log('onDidReceiveNotificationResponse:', '$details');
-        if (onTapLocalNotification != null) onTapLocalNotification(details);
+        _onTapNotificationResponseStreamController.add(details);
       },
     );
   }
@@ -96,7 +108,7 @@ class AppNotificationService {
           badgeNumber: Random().nextInt(100),
         ),
       ),
-      // payload: event.data['route'],
+      payload: jsonEncode(message?.data),
     );
   }
 
@@ -125,7 +137,6 @@ class AppNotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       _log("FirebaseMessaging.onMessageOpenedApp", message);
       onBackgroundMessagesCallback(message);
-      // await _showLocalNotification(message: message);
     });
   }
 
