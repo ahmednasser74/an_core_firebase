@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -11,6 +12,10 @@ import 'package:injectable/injectable.dart';
 // 1- add both lines in application scope of mainfest file
 // <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="default_notification_channel"/>
 // <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false"/>
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 @Injectable()
 class AppNotificationService {
@@ -23,8 +28,10 @@ class AppNotificationService {
   late FirebaseMessaging messaging;
   final StreamController<NotificationResponse> _onTapNotificationResponseStreamController = StreamController<NotificationResponse>.broadcast();
   static final StreamController<NotificationResponse> _onReceiveBgLocalNotificationStreamController = StreamController<NotificationResponse>.broadcast();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     messaging = FirebaseMessaging.instance;
     await messaging.requestPermission();
     _initAndFireLocalNotification();
@@ -59,17 +66,18 @@ class AppNotificationService {
   // }
 
   void _initAndFireLocalNotification() async {
-    await FlutterLocalNotificationsPlugin().initialize(
+    await flutterLocalNotificationsPlugin.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(requestSoundPermission: true, requestBadgePermission: true, requestAlertPermission: true),
       ),
 
+      //TODO:for activate notification actions check https://pub.dev/packages/flutter_local_notifications#-usage
       /// [onDidReceiveBackgroundNotificationResponse] callback is invoked on a background isolate. Functions passed to the
-      onDidReceiveBackgroundNotificationResponse: (NotificationResponse response) {
-        _log('onDidReceiveBackgroundNotificationResponse:', '$response');
-        _onReceiveBgLocalNotificationStreamController.add(response);
-      },
+      // onDidReceiveBackgroundNotificationResponse: (NotificationResponse response) {
+      //   _log('onDidReceiveBackgroundNotificationResponse:', '$response');
+      //   _onReceiveBgLocalNotificationStreamController.add(response);
+      // },
 
       /// The [onDidReceiveNotificationResponse] callback is fired when the user
       /// selects a notification or notification action that should show the
@@ -89,7 +97,7 @@ class AppNotificationService {
 
   Future<void> _showLocalNotification({RemoteMessage? message}) async {
     _log('Showing local notification', message?.notification?.title ?? "");
-    await FlutterLocalNotificationsPlugin().show(
+    await flutterLocalNotificationsPlugin.show(
       Random().nextInt(100),
       message?.notification?.title ?? '',
       message?.notification?.body ?? '',
@@ -99,7 +107,8 @@ class AppNotificationService {
           'Basic Notifications',
           importance: Importance.max,
           priority: Priority.high,
-          ticker: 'ESU Notification',
+          ticker: 'Notification Ticker',
+          icon: '@mipmap/ic_launcher',
         ),
         iOS: DarwinNotificationDetails(
           presentSound: true,
