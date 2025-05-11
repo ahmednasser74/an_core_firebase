@@ -1,12 +1,8 @@
-// import 'package:firebase_analytics/firebase_analytics.dart';
-// import 'package:injectable/injectable.dart';
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:an_core_firebase/an_core_firebase.dart';
+import 'package:injectable/injectable.dart';
 
-// @module
-// abstract class RegisterModule {
-//   @singleton
-//   FirebaseAnalytics firebaseMessaging() => FirebaseAnalytics.instance;
-
-//   @singleton
-//   Future<FirebaseApp> firebase() => Firebase.initializeApp();
-// }
+@module
+abstract class AppModule {
+  @lazySingleton
+  RemoteConfigService get remoteConfigService => RemoteConfigService();
+}
